@@ -7,7 +7,6 @@
 # Required organization secrets
 # - CC_GITHUB_TOKEN=...
 # - CC_TEAM_CHAMPIONS=org/team-name
-# - CC_TEAM_CHAMPIONS_PEOPLE_ARRAY=["username1"]
 # - CC_TEAM_CONTRIBUTORS_ORG=org
 # - CC_TEAM_CONTRIBUTORS_TEAM=team-name
 ---
@@ -31,7 +30,6 @@ jobs:
     if: ${{ (github.event.issue.pull_request && !github.event.issue.pull_request.draft) || (github.event.pull_request && !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     steps:
-    - run: echo "${{ toJSON(github) }}"
     - name: lookup teams
       id: teams
       uses: tspascoal/get-user-teams-membership@v1
@@ -40,18 +38,6 @@ jobs:
         organization: ${{ secrets.CC_TEAM_CONTRIBUTORS_ORG }}
         team: ${{ secrets.CC_TEAM_CONTRIBUTORS_TEAM }}
         GITHUB_TOKEN: "${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
-    - name: tag team on all Named Release PRs
-      if: ${{ github.event.action == 'opened' || github.event.action == 'ready_for_review' }}
-      run: |
-        curl \
-          -X POST \
-          -H 'Accept: application/vnd.github.v3+json' \
-          -H "authorization: Bearer ${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" \
-          https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers \
-          -d '{"reviewers": ${{ secrets.CC_TEAM_CHAMPIONS_PEOPLE_ARRAY }}}' \
-        ;
-    - name: debug
-      run: echo "${{ toJSON(steps.teams) }}"
     - name: approve PR
       if: ${{ steps.teams.outputs.isTeamMember == 'true' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') }}
       uses: andrewmusgrave/automatic-pull-request-review@0.0.5
@@ -65,7 +51,7 @@ jobs:
           > @edx-community-bot merge
 
           and we'll handle the rest!
-          CC: @${{ secrets.CC_TEAM_CHAMPIONS }}
+          CC: @${{ secrets.CC_TEAM_CHAMPIONS }} @${{ secrets.CC_TEAM_CONTRIBUTORS_ORG }}/${{ secrets.CC_TEAM_CONTRIBUTORS_TEAM }}
     - name: label PR as auto-mergeable
       if: ${{ steps.teams.outputs.isTeamMember == 'true' && contains(github.event.comment.body, '@edx-community-bot merge') }}
       uses: andymckay/labeler@978f846c4ca6299fd136f465b42c5e87aca28cac
@@ -75,7 +61,7 @@ jobs:
     - name: automerge
       uses: "pascalgn/automerge-action@v0.13.1"
       env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        GITHUB_TOKEN: "${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
         MERGE_COMMIT_MESSAGE: |
           merge(#{pullRequest.number}): {pullRequest.title}
 
