@@ -30,7 +30,6 @@ jobs:
     if: ${{ (github.event.issue.pull_request && !github.event.issue.pull_request.draft) || (github.event.pull_request && !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     steps:
-    - run: echo "${{ toJSON(github) }}"
     - name: lookup teams
       id: teams
       uses: tspascoal/get-user-teams-membership@v1
@@ -39,8 +38,6 @@ jobs:
         organization: ${{ secrets.CC_TEAM_CONTRIBUTORS_ORG }}
         team: ${{ secrets.CC_TEAM_CONTRIBUTORS_TEAM }}
         GITHUB_TOKEN: "${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
-    - name: debug
-      run: echo "${{ toJSON(steps.teams) }}"
     - name: approve PR
       if: ${{ steps.teams.outputs.isTeamMember == 'true' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') }}
       uses: andrewmusgrave/automatic-pull-request-review@0.0.5
